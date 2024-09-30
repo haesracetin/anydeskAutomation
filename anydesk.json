@@ -1,0 +1,8 @@
+{
+    "images": {
+        "login_button": { "path": "./login.png", "type": "image/png" },
+        "connect_button": { "path": "./connect_button.png", "type": "image/png" },
+        "accept_button": { "path": "./accept_button.png", "type": "image/png" },
+        "logout_button": { "path": "./logout_button.png", "type": "image/png" }
+}
+}
