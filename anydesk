@@ -1,0 +1,273 @@
+"""AnyDesk Traffic Generation Module."""
+import os
+import subprocess
+import time
+import pyautogui
+import json
+from tee.configs import ConfigManager
+from tee.framework.core.setup import Setup
+from tee.framework.core import reporting as rp
+from tee.framework.helpers.traffic_generation import TrafficGenerator
+import tee
+
+
+class AnyDeskApp(TrafficGenerator):
+    """AnyDesk Application Traffic Generator Class.
+
+    Attributes:
+        setup (Setup): Setup environment.
+        play_duration (int): Duration to stay connected in minutes.
+        configs_path (str): Path to configuration files.
+        configs (dict): Configuration data loaded from config files.
+        image_paths (dict): Paths to image assets.
+    """
+
+    def __init__(self, setup: Setup, play_duration: int) -> None:
+        """Initialize AnyDeskApp with setup environment and play duration.
+
+        Args:
+            setup (Setup): Setup environment.
+            play_duration (int): Duration to stay connected in minutes.
+        """
+        super().__init__(setup)
+        self.play_duration = play_duration
+        self.configs_path = os.path.join(
+            os.path.dirname(tee.__file__),
+            "configs",
+            "traffic_generation",
+            "anydesk"
+        )
+        self.configs = ConfigManager.get_config(
+            "anydesk", "traffic_generation", "anydesk"
+        )
+        rp.debug("Configs for AnyDesk are loaded")
+
+        try:
+            with open(self.get_path("images", "json")) as f:
+                self.image_paths = json.load(f)["images"]
+        except Exception as e:
+            rp.debug(f"Error loading image paths: {e}")
+            self.image_paths = {}
+
+    def get_path(self, section: str, key: str) -> str:
+        """Get the path from the configurations with appended type.
+
+        Args:
+            section (str): The section in the configurations.
+            key (str): The key to access the specific value.
+
+        Returns:
+            str: The path value with appended type.
+        """
+        try:
+            path_relative = self.configs[section][key]["path"]
+            type_ = self.configs[section][key]["type"]
+            return os.path.join(self.configs_path, f"{path_relative}.{type_}")
+        except KeyError:
+            rp.debug(f"Path not found for section: {section}, key: {key}")
+            return None
+
+    def start_traffic(self) -> bool:
+        """Starts generating traffic on AnyDesk.
+
+        Returns:
+            bool: Start traffic result.
+        """
+        rp.debug("Starting traffic generation on AnyDesk.")
+
+        result = True
+        try:
+            result &= self.start_anydesk()
+            time.sleep(10)
+
+            result &= self.login()
+            time.sleep(5)
+
+            result &= self.fill_login()
+            time.sleep(2)
+
+            result &= self.set_password()
+
+            result &= self.connect(self.play_duration)
+
+            rp.debug(f"Connected. Waiting for {self.play_duration} minutes...")
+            time.sleep(self.play_duration * 60)
+
+            self.stop_traffic()
+        except Exception as e:
+            rp.debug(f"An error occurred during traffic generation: {e}")
+            result = False
+
+        return result
+
+    def stop_traffic(self) -> bool:
+        """Stops Traffic."""
+        result = True
+        try:
+            result &= self.logout()
+            result &= self.close_anydesk()
+        except Exception as e:
+            rp.debug(f"An error occurred while stopping traffic: {e}")
+            result = False
+        return result
+
+    def start_anydesk(self) -> bool:
+        """Opens the AnyDesk application."""
+        application_path = r'C:\Program Files (x86)\AnyDesk\AnyDesk.exe'
+
+        try:
+            rp.debug(f"Opening application: {application_path}")
+            subprocess.run([
+                'powershell',
+                'Start-Process',
+                f'"{application_path}"',
+                '-Verb',
+                'runAs'
+            ], shell=True)
+            return True
+        except Exception as e:
+            rp.debug(f"Error occurred while opening the application: {e}")
+            return False
+
+    def click_image(self, image_path: str) -> bool:
+        """Clicks on the specified image on the screen.
+
+        Args:
+            image_path (str): Path to the image to be clicked.
+
+        Returns:
+            bool: True if the image was clicked successfully, False otherwise.
+        """
+        start_time = time.time()
+        try:
+            image_location = pyautogui.locateOnScreen(
+                image=image_path, minSearchTime=30, confidence=0.88)
+            end_time = time.time()
+            elapsed_time = end_time - start_time
+            rp.debug(f"Elapsed time: {elapsed_time:.2f} seconds")
+            if image_location:
+                rp.debug(f"Click on: {image_path}/{image_location}")
+                pyautogui.click(image_location)
+                return True
+            else:
+                rp.debug(f"Image not found: {image_path}/{image_location}")
+                return False
+        except Exception as e:
+            rp.debug(
+                f"An error occurred while clicking on image {image_path}: {e}")
+            return False
+
+    def login(self) -> bool:
+        """Attempts to log in to AnyDesk."""
+        return self.click_image(self.image_paths['login_button'])
+
+    def fill_login(self) -> bool:
+        """Fills in the login form."""
+        try:
+            time.sleep(5)
+            pyautogui.hotkey('ctrl', 'a')
+            pyautogui.press('backspace')
+            pyautogui.write("esractn235")
+            pyautogui.hotkey('ctrl', 'alt', 'q')
+            pyautogui.write("gmail.com")
+            time.sleep(5)
+            pyautogui.doubleClick(x=1518, y=257)
+            pyautogui.leftClick(x=1518, y=257)
+            time.sleep(5)
+            pyautogui.write("Selenium235.")
+            time.sleep(5)
+            pyautogui.leftClick(x=1627, y=295)
+            return True
+        except Exception as e:
+            rp.debug(f"An error occurred during the login process: {e}")
+            return False
+
+    def set_password(self) -> bool:
+        """Sets the password in AnyDesk."""
+        try:
+            time.sleep(5)
+            pyautogui.leftClick(x=1891, y=68)
+            time.sleep(2)
+            pyautogui.leftClick(x=1891, y=68)
+            time.sleep(5)
+            pyautogui.doubleClick(x=1826, y=154)
+            time.sleep(5)
+            pyautogui.write("deneme123")
+            time.sleep(2)
+            pyautogui.leftClick(x=912, y=539)
+            time.sleep(2)
+            pyautogui.write("deneme123")
+            time.sleep(2)
+            pyautogui.leftClick(x=945, y=659)
+            time.sleep(2)
+            pyautogui.leftClick(x=927, y=807)
+            time.sleep(2)
+            pyautogui.leftClick(x=986, y=702)
+            time.sleep(5)
+            pyautogui.leftClick(x=514, y=19)
+            return True
+        except Exception as e:
+            rp.debug(
+                f"An error occurred during the password setting process: {e}")
+            return False
+
+    def connect(self, duration_minutes: int) -> bool:
+        """Attempts to connect to a remote AnyDesk ID."""
+        try:
+            time.sleep(5)
+            pyautogui.click(x=500, y=500)
+            time.sleep(2)
+            pyautogui.leftClick(x=347, y=69)
+            pyautogui.write("1677821865")
+            time.sleep(2)
+            if self.click_image(self.image_paths['connect_button']):
+                time.sleep(5)
+                pyautogui.write("deneme123")
+                time.sleep(2)
+                pyautogui.press('enter')
+                rp.debug("Connect button clicked")
+                return True
+            else:
+                return False
+        except Exception as e:
+            rp.debug(
+                f"An error occurred while clicking the connect button: {e}")
+            return False
+
+    def logout(self) -> bool:
+        """Logs out of AnyDesk."""
+        try:
+            if not self.click_image(self.image_paths['login_button']):
+                rp.debug("Login button not found or could not be clicked.")
+                return False
+            time.sleep(2)
+
+            if not self.click_image(self.image_paths['logout_button']):
+                rp.debug("Logout button not found or could not be clicked.")
+                return False
+            return True
+        except Exception as e:
+            rp.debug(f"An error occurred during the logout process: {e}")
+            return False
+
+    def close_anydesk(self) -> bool:
+        """Closes the AnyDesk application."""
+        result = True
+        rp.debug("Closing AnyDesk.")
+        try:
+            os.system("taskkill /f /im AnyDesk.exe")
+            rp.debug("AnyDesk application closed.")
+        except Exception as e:
+            rp.debug(
+                f"An error occurred while closing the AnyDesk application: {e}")
+            result = False
+
+        return result
+
+
+if __name__ == "__main__":
+    play_duration = int(
+        input("Enter the duration (minutes) for which the connection will remain open: "))
+    setup = Setup()
+    anydesk_app = AnyDeskApp(setup=setup, play_duration=play_duration)
+    anydesk_app.start_traffic()
