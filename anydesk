@@ -218,7 +218,7 @@ class AnyDeskApp(TrafficGenerator):
             pyautogui.click(x=500, y=500)
             time.sleep(2)
             pyautogui.leftClick(x=347, y=69)
-            pyautogui.write("1677821865")
+            pyautogui.write("your_ıd")
             time.sleep(2)
             if self.click_image(self.image_paths['connect_button']):
                 time.sleep(5)
